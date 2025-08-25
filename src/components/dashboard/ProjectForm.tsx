@@ -20,7 +20,28 @@ export function ProjectForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Project submitted:", projectData);
+    const endpoint = 'https://t91dmv1ag3.execute-api.ap-northeast-1.amazonaws.com/prd/projects';
+  
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(projectData),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+  
+      const result = await response.json();
+      console.log("Project submitted successfully:", result);
+      // ここでフォームをリセットしたり、成功メッセージを表示したりする
+  
+    } catch (error) {
+      console.error('Error submitting project:', error);
+    }
   };
 
   return (
