@@ -20,7 +20,7 @@ export function ProjectForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const endpoint = 'https://t91dmv1ag3.execute-api.ap-northeast-1.amazonaws.com/prd/projects';
+    const endpoint = 'https://am1eyikcm5.execute-api.us-west-2.amazonaws.com/prod/projects';
   
     try {
       const response = await fetch(endpoint, {
