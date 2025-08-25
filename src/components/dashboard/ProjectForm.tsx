@@ -18,7 +18,7 @@ export function ProjectForm() {
     kpi: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const endpoint = 'https://t91dmv1ag3.execute-api.ap-northeast-1.amazonaws.com/prd/projects';
   
