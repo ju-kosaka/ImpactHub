@@ -47,7 +47,7 @@ export function UpcomingTasks({ projects, isLoading, totalImpactScore, totalDevL
                 className={cn(
                   "p-4 border border-dashboard-border rounded-lg transition-colors",
                   task.isBeyondVelocity 
-                    ? "bg-gray-100 opacity-60" 
+                    ? "bg-gray-200 text-gray-500" 
                     : "hover:bg-gray-50"
                 )}
               >
