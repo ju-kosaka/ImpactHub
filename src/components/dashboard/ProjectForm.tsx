@@ -114,7 +114,7 @@ export function ProjectForm() {
               <div>
                 <Label htmlFor="devLoad" className="text-dashboard-primary">Dev Load (Development Effort)</Label>
                 <Select value={projectData.devLoad} onValueChange={(value) => setProjectData(prev => ({ ...prev, devLoad: value }))}>
-                  <SelectTrigger className="border-dashboard-border">
+                  <SelectTrigger id="devLoad" className="border-dashboard-border">
                     <SelectValue placeholder="Select effort scale" />
                   </SelectTrigger>
                   <SelectContent>
