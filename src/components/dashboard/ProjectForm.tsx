@@ -5,23 +5,31 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react"; // ★ 変更点: ローディングアイコンをインポート
+import { toast } from "sonner"; // ★ 変更点: 通知（トースト）機能をインポート
+
+// ★ 変更点: フォームの初期状態を定義
+const initialProjectData = {
+  title: "",
+  summary: "",
+  bizImpact: "",
+  devLoad: "",
+  releaseWindow: "",
+  targetDate: "",
+  latestStartDate: "",
+  kpi: "",
+};
 
 export function ProjectForm() {
-  const [projectData, setProjectData] = useState({
-    title: "",
-    summary: "",
-    bizImpact: "",
-    devLoad: "",
-    releaseWindow: "",
-    targetDate: "",
-    latestStartDate: "",
-    kpi: "",
-  });
+  const [projectData, setProjectData] = useState(initialProjectData);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ★ 変更点: 送信中の状態を管理
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true); // ★ 変更点: ボタンが押されたら送信中状態にする
+
     const endpoint = 'https://am1eyikcm5.execute-api.us-west-2.amazonaws.com/prod/projects';
-  
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -30,17 +38,22 @@ export function ProjectForm() {
         },
         body: JSON.stringify(projectData),
       });
-  
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('Server responded with an error');
       }
-  
-      const result = await response.json();
-      console.log("Project submitted successfully:", result);
-      // ここでフォームをリセットしたり、成功メッセージを表示したりする
-  
+
+      // ★ 変更点: 成功を通知し、フォームをリセット
+      toast.success("Project created successfully!");
+      setProjectData(initialProjectData);
+
     } catch (error) {
       console.error('Error submitting project:', error);
+      // ★ 変更点: エラーを通知
+      toast.error("Failed to create project. Please try again.");
+
+    } finally {
+      setIsSubmitting(false); // ★ 変更点: 成功・失敗に関わらず送信中状態を解除
     }
   };
 
@@ -51,15 +64,12 @@ export function ProjectForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information Section */}
+          {/* ...フォームの入力欄（変更なし）... */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-dashboard-primary border-b border-dashboard-border pb-2">
               Basic Information
             </h3>
-            <p className="text-sm text-dashboard-muted">
-              This is the fundamental information to identify the project item.
-            </p>
-            
+            {/* ... */}
             <div>
               <Label htmlFor="title" className="text-dashboard-primary">Title</Label>
               <Input
@@ -83,15 +93,11 @@ export function ProjectForm() {
             </div>
           </div>
 
-          {/* Evaluation & Planning Parameters Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-dashboard-primary border-b border-dashboard-border pb-2">
               Evaluation & Planning Parameters
             </h3>
-            <p className="text-sm text-dashboard-muted">
-              This information is used for calculating priority and for schedule management.
-            </p>
-            
+            {/* ... */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="bizImpact" className="text-dashboard-primary">Biz Impact (Business Impact)</Label>
@@ -170,11 +176,20 @@ export function ProjectForm() {
             </div>
           </div>
           
+          {/* ★ 変更点: ボタンに送信中の状態を反映 */}
           <Button 
             type="submit" 
             className="w-full bg-dashboard-accent hover:bg-dashboard-accent/90 text-white"
+            disabled={isSubmitting}
           >
-            Create Project
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Create Project"
+            )}
           </Button>
         </form>
       </CardContent>
