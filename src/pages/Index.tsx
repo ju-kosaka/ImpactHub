@@ -5,13 +5,14 @@ import { ReleaseItems } from "@/components/dashboard/ReleaseItems";
 import { TestingDiagrams } from "@/components/dashboard/TestingDiagrams";
 import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
 import { ReleaseCalendar } from "@/components/dashboard/ReleaseCalendar";
-import { toast } from "sonner"; // ★ 通知機能を追加
+import { toast } from "sonner";
+import { getDevLoadValue } from "@/lib/utils"; // ★ 作成したヘルパー関数をインポート
 
 import ceoIcon from "@/assets/ceo-icon.jpg";
 import testEngineersIcon from "@/assets/test-engineers-icon.jpg";
 import devTeamIcon from "@/assets/dev-team-icon.jpg";
 
-// プロジェクトデータの型を定義
+// ★ プロジェクトデータの型にimpactScoreを追加
 export type Project = {
   id: string;
   title: string;
@@ -23,53 +24,65 @@ export type Project = {
   latestStartDate: string;
   kpi: string;
   createdAt: string;
+  impactScore?: number; // Impact Scoreプロパティを追加
 };
 
 const Index = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [totalImpactScore, setTotalImpactScore] = useState(0); // ★ 合計スコア用の状態
 
-  // APIからプロジェクトを取得する関数
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     try {
       const endpoint = 'https://am1eyikcm5.execute-api.us-west-2.amazonaws.com/prod/projects';
       const response = await fetch(endpoint);
-
       if (!response.ok) {
-        // ★ APIからの応答がエラーだった場合の処理を追加
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch projects');
       }
-
       const data = await response.json();
       
-      // ★ APIの応答が配列であることを確認してから処理する
       if (Array.isArray(data)) {
-        data.sort((a: Project, b: Project) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setProjects(data);
+        // ★ ここからが計算とソートのロジック
+        const projectsWithScores = data.map(project => {
+          const bizImpact = parseFloat(project.bizImpact) || 0;
+          const devLoad = getDevLoadValue(project.devLoad);
+          const impactScore = devLoad > 0 ? bizImpact / devLoad : 0;
+          return { ...project, impactScore };
+        });
+
+        // Impact Scoreの降順（大きい順）でソート
+        projectsWithScores.sort((a, b) => (b.impactScore ?? 0) - (a.impactScore ?? 0));
+        
+        // 合計Impact Scoreを計算
+        const totalScore = projectsWithScores.reduce((sum, project) => sum + (project.impactScore ?? 0), 0);
+
+        setProjects(projectsWithScores);
+        setTotalImpactScore(totalScore);
+        // ★ ここまで
       } else {
         console.error("API did not return an array:", data);
-        setProjects([]); // データが配列でない場合は空にする
+        setProjects([]);
+        setTotalImpactScore(0);
       }
-
     } catch (error) {
       console.error("Error fetching projects:", error);
-      toast.error(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`); // ★ エラーを通知
-      setProjects([]); // エラー発生時はプロジェクトを空にする
+      toast.error(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setProjects([]);
+      setTotalImpactScore(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // ページ読み込み時にプロジェクトを取得
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* ... Header, Top Section, Middle Sectionは変更なし ... */}
       <header className="bg-gradient-primary shadow-dashboard border-b border-dashboard-border">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <h1 className="text-3xl font-bold text-white">Project Management Dashboard</h1>
@@ -77,9 +90,7 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-12">
-        {/* Top Section - Executive Overview */}
         <section className="relative">
           <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
             <img src={ceoIcon} alt="CEO" className="w-full h-full object-cover" />
@@ -93,7 +104,6 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Middle Section - Testing & Quality */}
         <section className="relative">
            <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
             <img 
@@ -123,15 +133,20 @@ const Index = () => {
           <div className="ml-20">
             <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Development Planning</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <UpcomingTasks projects={projects} isLoading={isLoading} />
+              {/* ★ 合計スコアをコンポーネントに渡す */}
+              <UpcomingTasks 
+                projects={projects} 
+                isLoading={isLoading}
+                totalImpactScore={totalImpactScore}
+              />
               <ReleaseCalendar />
             </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-dashboard-primary text-white py-8 mt-16">
+      {/* ... Footerは変更なし ... */}
+       <footer className="bg-dashboard-primary text-white py-8 mt-16">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p>&copy; 2024 Project Management Dashboard. Built for efficient team collaboration.</p>
         </div>
