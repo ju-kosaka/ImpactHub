@@ -6,13 +6,13 @@ import { TestingDiagrams } from "@/components/dashboard/TestingDiagrams";
 import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
 import { ReleaseCalendar } from "@/components/dashboard/ReleaseCalendar";
 import { toast } from "sonner";
-import { getDevLoadValue } from "@/lib/utils"; // ★ 作成したヘルパー関数をインポート
+import { getDevLoadValue } from "@/lib/utils";
 
 import ceoIcon from "@/assets/ceo-icon.jpg";
 import testEngineersIcon from "@/assets/test-engineers-icon.jpg";
 import devTeamIcon from "@/assets/dev-team-icon.jpg";
 
-// ★ プロジェクトデータの型にimpactScoreを追加
+// ★ プロジェクトデータの型に新しいプロパティを追加
 export type Project = {
   id: string;
   title: string;
@@ -24,13 +24,17 @@ export type Project = {
   latestStartDate: string;
   kpi: string;
   createdAt: string;
-  impactScore?: number; // Impact Scoreプロパティを追加
+  impactScore?: number;
+  isBeyondVelocity?: boolean; // ★ Velocity超過フラグを追加
 };
+
+const TEAM_VELOCITY = 20; // ★ チームのVelocity（上限値）を定義
 
 const Index = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [totalImpactScore, setTotalImpactScore] = useState(0); // ★ 合計スコア用の状態
+  const [totalImpactScore, setTotalImpactScore] = useState(0);
+  const [totalDevLoad, setTotalDevLoad] = useState(0); // ★ 合計Dev Load用の状態
 
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
@@ -44,7 +48,7 @@ const Index = () => {
       const data = await response.json();
       
       if (Array.isArray(data)) {
-        // ★ ここからが計算とソートのロジック
+        // Impact Scoreの計算
         const projectsWithScores = data.map(project => {
           const bizImpact = parseFloat(project.bizImpact) || 0;
           const devLoad = getDevLoadValue(project.devLoad);
@@ -52,25 +56,40 @@ const Index = () => {
           return { ...project, impactScore };
         });
 
-        // Impact Scoreの降順（大きい順）でソート
+        // Impact Scoreの降順でソート
         projectsWithScores.sort((a, b) => (b.impactScore ?? 0) - (a.impactScore ?? 0));
         
-        // 合計Impact Scoreを計算
-        const totalScore = projectsWithScores.reduce((sum, project) => sum + (project.impactScore ?? 0), 0);
+        // ★ ここからがVelocity超過を判定するロジック
+        let cumulativeDevLoad = 0;
+        const projectsWithVelocity = projectsWithScores.map(project => {
+          cumulativeDevLoad += getDevLoadValue(project.devLoad);
+          return {
+            ...project,
+            isBeyondVelocity: cumulativeDevLoad > TEAM_VELOCITY,
+          };
+        });
 
-        setProjects(projectsWithScores);
+        // 合計値を計算
+        const totalScore = projectsWithVelocity.reduce((sum, p) => sum + (p.impactScore ?? 0), 0);
+        const totalLoad = projectsWithVelocity.reduce((sum, p) => sum + getDevLoadValue(p.devLoad), 0);
+        
+        setProjects(projectsWithVelocity);
         setTotalImpactScore(totalScore);
-        // ★ ここまで
+        setTotalDevLoad(totalLoad); // ★ 合計Dev Loadをセット
+
       } else {
+        // ... (エラーハンドリング部分は変更なし)
         console.error("API did not return an array:", data);
         setProjects([]);
         setTotalImpactScore(0);
+        setTotalDevLoad(0);
       }
     } catch (error) {
       console.error("Error fetching projects:", error);
       toast.error(`Failed to load data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setProjects([]);
       setTotalImpactScore(0);
+      setTotalDevLoad(0);
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +139,7 @@ const Index = () => {
             </div>
           </div>
         </section>
-
+        
         {/* Bottom Section - Development Planning */}
         <section className="relative">
           <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
@@ -133,11 +152,12 @@ const Index = () => {
           <div className="ml-20">
             <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Development Planning</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* ★ 合計スコアをコンポーネントに渡す */}
+              {/* ★ 合計Dev Loadをコンポーネントに渡す */}
               <UpcomingTasks 
                 projects={projects} 
                 isLoading={isLoading}
                 totalImpactScore={totalImpactScore}
+                totalDevLoad={totalDevLoad}
               />
               <ReleaseCalendar />
             </div>
