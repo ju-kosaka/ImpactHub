@@ -20,7 +20,7 @@ const initialProjectData = {
   kpi: "",
 };
 
-export function ProjectForm() {
+export function ProjectForm({ onProjectCreated }: { onProjectCreated: () => void }) {
   const [projectData, setProjectData] = useState(initialProjectData);
   const [isSubmitting, setIsSubmitting] = useState(false); // ★ 変更点: 送信中の状態を管理
 
@@ -46,7 +46,8 @@ export function ProjectForm() {
       // ★ 変更点: 成功を通知し、フォームをリセット
       toast.success("Project created successfully!");
       setProjectData(initialProjectData);
-
+      onProjectCreated(); // ★ 親コンポーネントから渡された関数を実行
+      
     } catch (error) {
       console.error('Error submitting project:', error);
       // ★ 変更点: エラーを通知
