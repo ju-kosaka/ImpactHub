@@ -152,8 +152,8 @@ const Index = () => {
           <div className="ml-20">
             <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Development Planning</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* ★ 合計Dev Loadをコンポーネントに渡す */}
               <UpcomingTasks 
+                allProjects={projects} // ★ 全プロジェクトリストを渡す
                 projects={projects} 
                 isLoading={isLoading}
                 totalImpactScore={totalImpactScore}
