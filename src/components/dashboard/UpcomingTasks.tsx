@@ -1,23 +1,20 @@
-import { useState } from "react"; // ★ useStateをインポート
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, TrendingUp, Zap, BrainCircuit } from "lucide-react"; // ★ BrainCircuitアイコンを追加
+import { Calendar, Clock, TrendingUp, Zap, BrainCircuit } from "lucide-react";
 import { Project } from "@/pages/Index";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button"; // ★ Buttonをインポート
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"; // ★ Dialog関連をインポート
-import { toast } from "sonner"; // ★ toastをインポート
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
-// ★ propsの型に全プロジェクトリストを追加
 export function UpcomingTasks({ allProjects, projects, isLoading, totalImpactScore, totalDevLoad }: { allProjects: Project[]; projects: Project[]; isLoading: boolean; totalImpactScore: number; totalDevLoad: number; }) {
 
-  // ★ AI提案用の状態管理
   const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // ★ AIに提案を依頼する関数
   const handleSuggestionClick = async (targetItemId: string) => {
     setIsModalOpen(true);
     setIsSuggestionLoading(true);
@@ -32,7 +29,7 @@ export function UpcomingTasks({ allProjects, projects, isLoading, totalImpactSco
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          projects: allProjects, // 現在の全プロジェクトリストを送信
+          projects: allProjects,
           targetItemId: targetItemId,
         }),
       });
@@ -91,33 +88,46 @@ export function UpcomingTasks({ allProjects, projects, isLoading, totalImpactSco
                 <div
                   key={task.id}
                   className={cn(
-                    "p-4 border border-dashboard-border rounded-lg transition-colors relative", // ★ relativeを追加
+                    "p-4 border border-dashboard-border rounded-lg transition-colors",
                     task.isBeyondVelocity 
                       ? "bg-gray-200 text-gray-500"
                       : "hover:bg-gray-50"
                   )}
                 >
-                  {/* ★ Velocity超過時にAI提案ボタンを表示 */}
-                  {task.isBeyondVelocity && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-2 right-2 bg-white/50 hover:bg-white"
-                      onClick={() => handleSuggestionClick(task.id)}
-                    >
-                      <BrainCircuit className="h-4 w-4 mr-2" />
-                      AIに分割案を相談
-                    </Button>
-                  )}
+                  {/* ★ 変更点: ここから下のレイアウトを修正 */}
+                  <div className="flex items-start justify-between">
+                    <h4 className={cn(
+                      "font-medium pr-4", // 右側にスペースを追加
+                      task.isBeyondVelocity ? "text-gray-700" : "text-dashboard-primary"
+                    )}>
+                      {task.title}
+                    </h4>
 
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-dashboard-primary">{task.title}</h4>
-                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                      Impact: {task.impactScore?.toFixed(1) ?? 'N/A'}
-                    </Badge>
+                    {/* ★ 右側の要素（バッジとボタン）をまとめるコンテナ */}
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge className={cn(
+                        "bg-green-100 text-green-800 border-green-200",
+                        task.isBeyondVelocity && "bg-gray-300 text-gray-700 border-gray-400"
+                      )}>
+                        Impact: {task.impactScore?.toFixed(1) ?? 'N/A'}
+                      </Badge>
+                      
+                      {task.isBeyondVelocity && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-white/50 hover:bg-white"
+                          onClick={() => handleSuggestionClick(task.id)}
+                        >
+                          <BrainCircuit className="h-4 w-4 mr-2" />
+                          AIに分割案を相談
+                        </Button>
+                      )}
+                    </div>
                   </div>
+                  {/* ★ 変更点ここまで */}
                   
-                  <div className="flex items-center space-x-4 text-sm text-dashboard-gray">
+                  <div className="flex items-center space-x-4 text-sm text-dashboard-gray mt-2">
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
                       <span>DevLoad: {task.devLoad}</span>
@@ -136,7 +146,7 @@ export function UpcomingTasks({ allProjects, projects, isLoading, totalImpactSco
         </CardContent>
       </Card>
 
-      {/* ★ AI提案表示用モーダル */}
+      {/* AI提案表示用モーダル（変更なし） */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -154,7 +164,6 @@ export function UpcomingTasks({ allProjects, projects, isLoading, totalImpactSco
                 <p>分析中です...</p>
               </div>
             ) : (
-              // 改行を<br>に変換して表示
               suggestion && suggestion.split('\n').map((line, index) => (
                 <p key={index}>{line}</p>
               ))
