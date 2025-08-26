@@ -1,125 +1,135 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+import { useState, useEffect, useCallback } from "react"; // useCallbackを追加
+import { ProjectForm } from "@/components/dashboard/ProjectForm";
+import { KPIChart } from "@/components/dashboard/KPIChart";
+import { ReleaseItems } from "@/components/dashboard/ReleaseItems";
+import { TestingDiagrams } from "@/components/dashboard/TestingDiagrams";
+import { UpcomingTasks } from "@/components/dashboard/UpcomingTasks";
+import { ReleaseCalendar } from "@/components/dashboard/ReleaseCalendar";
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+import ceoIcon from "@/assets/ceo-icon.jpg";
+import testEngineersIcon from "@/assets/test-engineers-icon.jpg";
+import devTeamIcon from "@/assets/dev-team-icon.jpg";
 
-@layer base {
-  :root {
-    --background: 0 0% 98%;
-    --foreground: 241 78% 23%;
+// ★ プロジェクトデータの型を定義
+export type Project = {
+  id: string;
+  title: string;
+  summary: string;
+  bizImpact: string;
+  devLoad: string;
+  releaseWindow: string;
+  targetDate: string;
+  latestStartDate: string;
+  kpi: string;
+  createdAt: string;
+};
 
-    --card: 0 0% 100%;
-    --card-foreground: 241 78% 23%;
+const Index = () => {
+  // ★ 取得したプロジェクトを保存する状態
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 241 78% 23%;
+  // ★ APIからプロジェクトを取得する関数
+  const fetchProjects = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const endpoint = 'https://am1eyikcm5.execute-api.us-west-2.amazonaws.com/prod/projects';
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error('Failed to fetch projects');
+      }
+      const data = await response.json();
+      // 作成日順でソート
+      data.sort((a: Project, b: Project) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setProjects(data);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    --primary: 241 78% 23%;
-    --primary-foreground: 0 0% 98%;
+  // ★ ページ読み込み時にプロジェクトを取得
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 241 78% 23%;
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-gradient-primary shadow-dashboard border-b border-dashboard-border">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <h1 className="text-3xl font-bold text-white">Project Management Dashboard</h1>
+          <p className="text-white/80 mt-2">Monitor your projects, releases, and team performance</p>
+        </div>
+      </header>
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 35%;
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-12">
+        {/* Top Section - Executive Overview */}
+        <section className="relative">
+          <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
+            <img src={ceoIcon} alt="CEO" className="w-full h-full object-cover" />
+          </div>
+          <div className="ml-20">
+            <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Executive Overview</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* ★ プロジェクト作成後にリストを更新する関数を渡す */}
+              <ProjectForm onProjectCreated={fetchProjects} />
+              <KPIChart />
+            </div>
+          </div>
+        </section>
 
-    --accent: 336 100% 50%;
-    --accent-foreground: 0 0% 98%;
+        {/* Middle Section - Testing & Quality */}
+        <section className="relative">
+          {/* ...アイコン部分は変更なし... */}
+           <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
+            <img 
+              src={testEngineersIcon} 
+              alt="Test Engineers" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="ml-20">
+            <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Quality Assurance</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* ★ 取得したデータをコンポーネントに渡す */}
+              <ReleaseItems projects={projects} isLoading={isLoading} />
+              <TestingDiagrams />
+            </div>
+          </div>
+        </section>
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+        {/* Bottom Section - Development Planning */}
+        <section className="relative">
+           {/* ...アイコン部分は変更なし... */}
+          <div className="absolute top-0 left-0 w-16 h-16 rounded-full overflow-hidden shadow-card border-4 border-white bg-white">
+            <img 
+              src={devTeamIcon} 
+              alt="Development Team" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="ml-20">
+            <h2 className="text-2xl font-bold text-dashboard-primary mb-6">Development Planning</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+               {/* ★ 取得したデータをコンポーネントに渡す */}
+              <UpcomingTasks projects={projects} isLoading={isLoading} />
+              <ReleaseCalendar />
+            </div>
+          </div>
+        </section>
+      </main>
 
-    --border: 0 0% 90%;
-    --input: 0 0% 94%;
-    --ring: 336 100% 50%;
+      {/* Footer */}
+      <footer className="bg-dashboard-primary text-white py-8 mt-16">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p>&copy; 2024 Project Management Dashboard. Built for efficient team collaboration.</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
 
-    /* Dashboard specific tokens */
-    --dashboard-primary: 241 78% 23%;
-    --dashboard-accent: 336 100% 50%;
-    --dashboard-gray: 0 0% 35%;
-    --dashboard-section-bg: 0 0% 100%;
-    --dashboard-border: 0 0% 88%;
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(241 78% 23%), hsl(241 78% 30%));
-    --gradient-accent: linear-gradient(135deg, hsl(336 100% 50%), hsl(336 100% 45%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
-    
-    /* Shadows */
-    --shadow-dashboard: 0 4px 20px -2px hsl(241 78% 23% / 0.1);
-    --shadow-card: 0 2px 10px -1px hsl(241 78% 23% / 0.08);
-    --shadow-accent: 0 4px 15px hsl(336 100% 50% / 0.3);
-    
-    /* Transitions */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-}
+export default Index;
